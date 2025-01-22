@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.coderhouse.dtos.ProductoDTO;
 import com.coderhouse.dtos.VentaDTO;
-import com.coderhouse.models.Venta;
 import com.coderhouse.services.VentaService;
 
 
@@ -54,7 +54,10 @@ public class VentaController {
 	@PostMapping
 	public ResponseEntity<VentaDTO> newVenta(@RequestBody VentaDTO dto){
 		try {
-			VentaDTO nuevaVenta = ventaService.newVenta(dto.getClienteId(), dto.getProductosId());
+	        List<Long> productosIds = dto.getProductos().stream()
+	                                     .map(ProductoDTO::getId)
+	                                     .toList();
+			VentaDTO nuevaVenta = ventaService.newVenta(dto.getClienteId(), productosIds);
 			return ResponseEntity.status(HttpStatus.CREATED).body(nuevaVenta);
 		}catch(Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
@@ -63,18 +66,16 @@ public class VentaController {
 	
 	//ACTUALIZAR VENTA
 	@PutMapping("/{id}")
-	public ResponseEntity<Venta> updateVentaById(@PathVariable Long id, @RequestBody VentaDTO dto){
+	public ResponseEntity<VentaDTO> updateVentaById(@PathVariable Long id, @RequestBody VentaDTO dto){
 		try {
-			Venta updatedVenta = ventaService.updateVentaById(id, dto);
+			VentaDTO updatedVenta = ventaService.updateVentaById(id, dto);
 			return ResponseEntity.ok(updatedVenta);
 		}catch(IllegalArgumentException e) {
 			System.err.println("Error en argumentos: " + e.getMessage());
-		    throw e;
-//			return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
 		}catch(Exception e) {
-			System.err.println("Error inesperado: " + e.getMessage());
-		    throw e;
-//			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
+			System.err.println("Error inesperado al actualizar la venta: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
 		}
 	}
 	
