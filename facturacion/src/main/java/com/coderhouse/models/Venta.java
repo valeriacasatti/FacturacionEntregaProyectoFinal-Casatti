@@ -1,6 +1,5 @@
 package com.coderhouse.models;
 
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +37,7 @@ public class Venta {
 	private Long id;
 	
 	@Column(nullable = false)
-	private Date fecha;
+	private String fecha;
 	
 	@Column(nullable = false)
 	private Integer total;

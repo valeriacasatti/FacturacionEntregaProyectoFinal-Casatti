@@ -1,6 +1,5 @@
 package com.coderhouse.dtos;
 
-import java.sql.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,8 +19,8 @@ public class VentaDTO {
 	private Long clienteId;
 	private String clienteNombre;
 	private String clienteApellido;
-	private Integer total;
-    private Date fecha;
+    private String fecha;
     private List<ProductoDTO> productos;
+    private Integer total;
     
 }

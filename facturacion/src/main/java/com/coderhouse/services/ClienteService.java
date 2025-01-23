@@ -16,24 +16,24 @@ public class ClienteService {
 	@Autowired
 	private ClienteRepository clienteRepository;
 	
-	//GET ALL CLIENTES
+	// GET ALL CLIENTES
 	public List<Cliente> getAllClients(){
 		return clienteRepository.findAll();
 	}
 	
-	//GET CLIENTE BY ID
+	// GET CLIENTE BY ID
 	public Cliente getClienteById(Long id) {
 		return clienteRepository.findById(id)
 				.orElseThrow(()-> new IllegalArgumentException("Cliente no encontrado"));
 	}
 	
-	//CREAR CLIENTE
+	// CREAR CLIENTE
 	@Transactional
 	public Cliente newCliente(Cliente clienteInfo) {
 		return clienteRepository.save(clienteInfo);
 	}
 	
-	//ACTUALIZAR CLIENTE
+	// ACTUALIZAR CLIENTE
 	@Transactional
 	public Cliente updateClienteById(Long id, Cliente clienteInfo) {
 		Cliente cliente = clienteRepository.findById(id)
@@ -54,7 +54,7 @@ public class ClienteService {
 		return clienteRepository.save(cliente);
 	}
 	
-	//ELIMINAR CLIENTE
+	// ELIMINAR CLIENTE
 	public void deleteClienteById(Long id) {
 		if(!clienteRepository.existsById(id)) {
 			throw new IllegalArgumentException("Cliente no encontrado");

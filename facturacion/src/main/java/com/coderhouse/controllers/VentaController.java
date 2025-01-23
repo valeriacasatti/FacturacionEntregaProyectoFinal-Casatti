@@ -54,11 +54,20 @@ public class VentaController {
 	@PostMapping
 	public ResponseEntity<VentaDTO> newVenta(@RequestBody VentaDTO dto){
 		try {
+			if(dto.getClienteId() == null || dto.getProductos() == null || dto.getProductos().isEmpty()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+			}
 	        List<Long> productosIds = dto.getProductos().stream()
 	                                     .map(ProductoDTO::getId)
 	                                     .toList();
-			VentaDTO nuevaVenta = ventaService.newVenta(dto.getClienteId(), productosIds);
+	        List<Integer> cantidad = dto.getProductos().stream()
+                    					.map(ProductoDTO::getCantidad)
+                    					.toList();
+			VentaDTO nuevaVenta = ventaService.newVenta(dto.getClienteId(), productosIds, cantidad);
 			return ResponseEntity.status(HttpStatus.CREATED).body(nuevaVenta);
+		}catch(IllegalArgumentException e) {
+			System.err.println("Error en argumentos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
 		}catch(Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
 		}

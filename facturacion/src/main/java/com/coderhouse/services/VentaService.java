@@ -1,12 +1,10 @@
 package com.coderhouse.services;
 
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import com.coderhouse.dtos.VentaDTO;
 import com.coderhouse.dtos.ProductoDTO;
 import com.coderhouse.models.Cliente;
@@ -23,12 +21,12 @@ public class VentaService {
 
 	@Autowired
 	private VentaRepository ventaRepository;
-	
 	@Autowired
 	private ClienteRepository clienteRepository;
-	
 	@Autowired
 	private ProductoRepository productoRepository;
+	@Autowired
+	private FechaService fechaService;
 	
 	// GET ALL VENTAS
 	public List<VentaDTO> getAllVentas() {
@@ -38,11 +36,18 @@ public class VentaService {
 	            venta.getCliente().getId(),
 	            venta.getCliente().getNombre(),
 	            venta.getCliente().getApellido(),
-	            venta.getTotal(),
 	            venta.getFecha(),
 	            venta.getProductos().stream()
-	                .map(producto -> new ProductoDTO(producto.getId(), producto.getNombre()))
-	                .toList()
+	                .map(producto -> new ProductoDTO(
+	                		producto.getId(),
+	                		producto.getNombre(),
+	                		producto.getPrecio(),
+	                		(int) venta.getProductos().stream()
+	                		.filter(p -> p.getId().equals(producto.getId()))
+	                		.count() // cantidad
+	                		))
+	                .toList(),
+	               venta.getTotal()
 	        ))
 	        .toList();
 	}
@@ -57,52 +62,76 @@ public class VentaService {
 	        venta.getCliente().getId(),
 	        venta.getCliente().getNombre(),
 	        venta.getCliente().getApellido(),
-	        venta.getTotal(),
 	        venta.getFecha(),
 	        venta.getProductos().stream()
-	            .map(producto -> new ProductoDTO(producto.getId(), producto.getNombre()))
-	            .toList()
+	            .map(producto -> new ProductoDTO(
+	            		producto.getId(),
+	            		producto.getNombre(),
+	            		producto.getPrecio(),
+	            		(int) venta.getProductos().stream()
+                		.filter(p -> p.getId().equals(producto.getId()))
+                		.count() // cantidad
+                		))
+	            .toList(),
+		        venta.getTotal()
 	    );
 	}
 	
 	// CREAR VENTA/COMPROBANTE
 	@Transactional
-	public VentaDTO newVenta(Long clienteId, List<Long> productosId) {
+	public VentaDTO newVenta(Long clienteId, List<Long> productosId, List<Integer> cantidad) {
 		// Validar que el cliente exista
 	    Cliente cliente = clienteRepository.findById(clienteId)
 	            .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
 	    
 	    // Validar que los productos existan
-	    List<Producto> productos = new ArrayList<>();
+	    if(productosId == null || productosId.isEmpty() || cantidad == null || cantidad.isEmpty()) {
+	    	throw new IllegalArgumentException("Debe proporcionar una lista de productos y cantidades");
+	    }
 	    
-	    for(Long productoId : productosId) {
+	    // Validar que exista la cantidad solicitada
+	    if(productosId.size() != cantidad.size()) {
+	    	throw new IllegalArgumentException("Stock insuficiente para la cantidad de productos solicitados");
+	    }
+	    
+	    List<Producto> productos = new ArrayList<>();
+	    int total = 0;
+	    
+	    for(int i = 0; i < productosId.size(); i++) {
+	    	Long productoId = productosId.get(i);
+	    	Integer cantidades = cantidad.get(i);
+	    	
+	    	if(cantidades <= 0) {
+		    	throw new IllegalArgumentException("Debe proporcionar una cantidad mayor a 0");
+	    	}
+	    	
 	    	Producto producto = productoRepository.findById(productoId)
 	    			.orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
 	    	
 	    	// Validar stock
-	    	if(producto.getStock() <= 0) {
+	    	if(producto.getStock() < cantidades) {
 	    		throw new IllegalArgumentException("Stock insuficiente");
 	    	}
 	    	
 	    	// Reducir stock
-	    	producto.setStock(producto.getStock() - 1);
+	    	producto.setStock(producto.getStock() - cantidades);
 	    	productoRepository.save(producto);
-	    	
 	    	productos.add(producto);
+	    	
+	    	// Calcular el total de la venta
+		    total += producto.getPrecio() * cantidades;
 	    }
 	    
-	    // Calcular el total de la venta
-	    int total = productos.stream()
-	            .mapToInt(Producto::getPrecio)
-	            .sum();
-	    
+	    // Crear venta
 	    Venta nuevaVenta = new Venta();
-	    
-	    nuevaVenta.setFecha(new Date(System.currentTimeMillis()));
 	    nuevaVenta.setCliente(cliente);
 	    nuevaVenta.setProductos(productos);
 	    nuevaVenta.setTotal(total);
 	    
+	    // Asignar fecha
+	    fechaService.asignarFecha(nuevaVenta);
+	    
+	    // Guardar la venta
 		Venta ventaGuardada = ventaRepository.save(nuevaVenta);
 		
 		return new VentaDTO(
@@ -110,11 +139,11 @@ public class VentaService {
 			    cliente.getId(),
 			    cliente.getNombre(),
 			    cliente.getApellido(),
-			    ventaGuardada.getTotal(),
 			    ventaGuardada.getFecha(),
 			    productos.stream()
-			        .map(producto -> new ProductoDTO(producto.getId(), producto.getNombre()))
-			        .toList()
+			        .map(producto -> new ProductoDTO(producto.getId(), producto.getNombre(), producto.getPrecio(), cantidad.get(productos.indexOf(producto))))
+			        .toList(),
+				ventaGuardada.getTotal()
 			);
 	}
 	
@@ -145,24 +174,31 @@ public class VentaService {
 	        
 	        // Validar y agregar los nuevos productos
 	        List<Producto> nuevosProductos = new ArrayList<>();
+	        int nuevoTotal = 0;
+	        
 	        for (ProductoDTO productoDTO : dto.getProductos()) {
+	        	
 	            Producto producto = productoRepository.findById(productoDTO.getId())
 	                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
-	            if (producto.getStock() <= 0) {
-	                throw new IllegalArgumentException("Stock insuficiente para el producto: " + producto.getNombre());
+	            
+	            if(productoDTO.getCantidad() <= 0) {
+			    	throw new IllegalArgumentException("Debe proporcionar una cantidad mayor a 0");
 	            }
-	            producto.setStock(producto.getStock() - 1); // Reducir el stock
+	            
+	            if (producto.getStock() < productoDTO.getCantidad()) {
+	                throw new IllegalArgumentException("Stock insuficiente");
+	            }
+	            
+	            producto.setStock(producto.getStock() - productoDTO.getCantidad()); // Reducir el stock
 	            productoRepository.save(producto);
 	            nuevosProductos.add(producto);
+	            
+	            // Recalcular el total
+		        nuevoTotal += producto.getPrecio() * productoDTO.getCantidad();
 	        }
 
-	        	venta.getProductos().clear(); 
-	        	venta.getProductos().addAll(nuevosProductos);
-	        
-	        // Recalcular el total
-	        int nuevoTotal = nuevosProductos.stream()
-	                .mapToInt(Producto::getPrecio)
-	                .sum();
+	        venta.getProductos().clear(); 
+	        venta.getProductos().addAll(nuevosProductos);
 	        venta.setTotal(nuevoTotal);
 	    }
 	    
@@ -174,19 +210,38 @@ public class VentaService {
 	            ventaActualizada.getCliente().getId(),
 	            ventaActualizada.getCliente().getNombre(),
 	            ventaActualizada.getCliente().getApellido(),
-	            ventaActualizada.getTotal(),
 	            ventaActualizada.getFecha(),
 	            ventaActualizada.getProductos().stream()
-	                    .map(producto -> new ProductoDTO(producto.getId(), producto.getNombre()))
-	                    .toList()
+	                    .map(producto -> new ProductoDTO(
+	                    		producto.getId(),
+	                    		producto.getNombre(),
+	                    		producto.getPrecio(),
+	                    		dto.getProductos().stream()
+	                    		.filter(p -> p.getId().equals(producto.getId()))
+	                    		.findFirst()
+	                    		.orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"))
+	                    		.getCantidad()
+	                    	))
+	                    .toList(),
+	            ventaActualizada.getTotal()
 	    );
 	}
 	
 	// ELIMINAR VENTA
 	public void deleteVentaById(Long id) {
-		if(!ventaRepository.existsById(id)) {
-			throw new IllegalArgumentException("Venta no encontrada");
+		
+		Venta venta = ventaRepository.findById(id)
+				.orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
+		
+		// Restaurar stock
+		for (Producto producto : venta.getProductos()) {
+			int cantidad = (int) venta.getProductos().stream()
+					.filter(p -> p.getId().equals(producto.getId()))
+					.count();
+			producto.setStock(producto.getStock() + cantidad);
+			productoRepository.save(producto);
 		}
+		
 		ventaRepository.deleteById(id);
 	}
 }
