@@ -116,7 +116,6 @@ public class VentaController {
 			System.err.println("Error en argumentos: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
 		}catch(Exception e) {
-		    e.printStackTrace(); // Esto imprimirá el error en la consola
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
 		}
 	}
