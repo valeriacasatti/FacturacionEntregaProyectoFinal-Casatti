@@ -12,7 +12,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import lombok.AllArgsConstructor;
@@ -25,7 +25,7 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"ventas"})
+@ToString(exclude = {"ventaProductos"})
 
 @Schema(description = "Modelo que representa un producto disponible en la plataforma")
 
@@ -51,7 +51,7 @@ public class Producto {
 	private Integer stock;
 	
 	@Schema(description="Lista de ventas en las que aparece este producto", hidden = true)
-	@ManyToMany(mappedBy = "productos", fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "producto", fetch = FetchType.LAZY)
 	@JsonIgnore
-	private List<Venta> ventas = new ArrayList<>();
+	private List<VentaProducto> ventaProductos = new ArrayList<>();
 }
