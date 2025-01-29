@@ -17,26 +17,53 @@ import org.springframework.web.bind.annotation.RestController;
 import com.coderhouse.models.Cliente;
 import com.coderhouse.services.ClienteService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 
 @RestController
 @RequestMapping("/api/clientes")
+@Tag(name="Gestion de clientes", description="Endpoints para gestionar clientes en el sistema")
 public class ClienteController {
 
 	@Autowired
 	private ClienteService clienteService;
 	
 	//GET ALL CLIENTES
+	@Operation(summary = "Obtener lista de clientes", description = "Este endpoint devuelve una lista completa de los clientes registrados en el sistema")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Lista de clientes obtenida correctamente",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Cliente.class),
+                            examples = @ExampleObject(value = "[{\"id\":1,\"nombre\":\"Valeria\",\"apellido\":\"Casatti\",\"email\":\"valeria@gmail.com\"}]"))),
+			@ApiResponse(responseCode = "404", description = "Error al obtener los clientes", content = @Content),
+			@ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content)
+	})
 	@GetMapping
 	public ResponseEntity<List<Cliente>> getAllClients() {
 		try {
 			List<Cliente> clientes = clienteService.getAllClients();
 			return ResponseEntity.ok(clientes); 
+		} catch(IllegalArgumentException e) {
+			return ResponseEntity.notFound().build();
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
 		}
 	}
 	
 	//GET CLIENTE BY ID
+	@Operation(summary = "Obtener un cliente por ID", description = "Devuelve los detalles de un cliente específico según su ID")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Cliente obtenido correctamente",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Cliente.class),
+                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Valeria\",\"apellido\":\"Casatti\",\"email\":\"valeria@gmail.com\"}"))),
+			@ApiResponse(responseCode = "404", description = "Error al obtener el cliente", content = @Content),
+			@ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content)
+	})
 	@GetMapping("/{id}")
 	public ResponseEntity<Cliente> getClienteById(@PathVariable Long id) {
 		try {
@@ -50,6 +77,13 @@ public class ClienteController {
 	}
 	
 	//CREAR CLIENTE
+	@Operation(summary = "Crear un cliente", description = "Permite registrar un nuevo cliente en el sistema")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "201", description = "Cliente creado correctamente.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Cliente.class),
+                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Valeria\",\"apellido\":\"Casatti\",\"email\":\"valeria@gmail.com\"}"))),
+			@ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content)
+	})
 	@PostMapping
 	public ResponseEntity<Cliente> newCliente(@RequestBody Cliente cliente){
 		try {
@@ -61,6 +95,14 @@ public class ClienteController {
 	}
 	
 	//ACTUALIZAR CLIENTE
+	@Operation(summary = "Actualizar un cliente", description = "Permite actualizar un cliente específico según su ID")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Cliente actualizado correctamente.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Cliente.class),
+                            examples = @ExampleObject(value = "{\"id\":1,\"nombre\":\"Valeria\",\"apellido\":\"Casatti\",\"email\":\"valeria@gmail.com\"}"))),
+			@ApiResponse(responseCode = "404", description = "Error al obtener el cliente", content = @Content),
+			@ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content)
+	})
 	@PutMapping("/{id}")
 	public ResponseEntity<Cliente> updateClienteById(@PathVariable Long id, @RequestBody Cliente clienteInfo){
 		try {
@@ -72,7 +114,14 @@ public class ClienteController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); 
 		}
 	}
+	
 	//ELIMINAR CLIENTE
+	@Operation(summary = "Eliminar un cliente", description = "Elimina un cliente del sistema según su ID")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "204", description = "Cliente eliminado correctamente.", content = @Content),
+			@ApiResponse(responseCode = "404", description = "Error al obtener el cliente", content = @Content),
+			@ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content)
+	})
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deleteClienteById(@PathVariable Long id){
 		try {

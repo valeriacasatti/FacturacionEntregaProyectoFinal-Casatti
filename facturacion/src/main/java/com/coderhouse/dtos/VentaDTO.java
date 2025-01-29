@@ -34,7 +34,7 @@ public class VentaDTO {
 			format = "date", example="2025/01/17")
     private String fecha;
 	
-	@Schema(description="Lista de productos asociados a la venta", example = "[{id: 1, nombre: 'Remera', precio: 100}]")
+	@Schema(description="Lista de productos asociados a la venta", example = "[{\"id\":10,\"cantidad\":2}]")
     private List<ProductoDTO> productos;
     
 	@Schema(description="Monto total de la venta", requiredMode=Schema.RequiredMode.REQUIRED, example="500")
